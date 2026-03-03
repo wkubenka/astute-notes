@@ -1,0 +1,22 @@
+# AWS credentials
+aws_credentials.properties
+
+# Gradle
+.gradle/
+build/
+local.properties
+
+# IDE
+.idea/
+*.iml
+
+# Android
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# OS
+.DS_Store
+
+.claude/settings.local.json
