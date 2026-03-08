@@ -2,7 +2,8 @@ package com.astutenotes.ui.notelist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.astutenotes.data.S3NoteRepository
+import com.astutenotes.AstuteNotesApp
+import com.astutenotes.data.NoteRepository
 import com.astutenotes.model.Note
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,9 +16,9 @@ data class NoteListUiState(
     val error: String? = null
 )
 
-class NoteListViewModel : ViewModel() {
-
-    private val repository = S3NoteRepository()
+class NoteListViewModel(
+    private val repository: NoteRepository = AstuteNotesApp.instance.repository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NoteListUiState())
     val uiState: StateFlow<NoteListUiState> = _uiState.asStateFlow()

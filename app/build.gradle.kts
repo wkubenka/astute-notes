@@ -1,17 +1,8 @@
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.compose.compiler)
-}
-
-val awsProperties = Properties().apply {
-    val file = rootProject.file("aws_credentials.properties")
-    if (file.exists()) {
-        load(file.inputStream())
-    }
 }
 
 android {
@@ -24,28 +15,10 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
-        buildConfigField(
-            "String", "AWS_ACCESS_KEY_ID",
-            "\"${awsProperties.getProperty("aws.accessKeyId", "")}\""
-        )
-        buildConfigField(
-            "String", "AWS_SECRET_ACCESS_KEY",
-            "\"${awsProperties.getProperty("aws.secretAccessKey", "")}\""
-        )
-        buildConfigField(
-            "String", "AWS_REGION",
-            "\"${awsProperties.getProperty("aws.region", "us-east-1")}\""
-        )
-        buildConfigField(
-            "String", "S3_BUCKET_NAME",
-            "\"${awsProperties.getProperty("aws.s3.bucket", "")}\""
-        )
     }
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 
     compileOptions {
@@ -85,4 +58,7 @@ dependencies {
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

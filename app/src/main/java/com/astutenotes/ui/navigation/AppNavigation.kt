@@ -9,10 +9,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.astutenotes.ui.noteeditor.NoteEditorScreen
 import com.astutenotes.ui.notelist.NoteListScreen
+import com.astutenotes.ui.settings.SettingsScreen
 
 object Routes {
     const val NOTE_LIST = "noteList"
     const val NOTE_EDITOR = "noteEditor?noteId={noteId}"
+    const val SETTINGS = "settings"
 
     fun noteEditor(noteId: String? = null): String {
         return if (noteId != null) "noteEditor?noteId=$noteId" else "noteEditor"
@@ -26,7 +28,8 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         composable(Routes.NOTE_LIST) {
             NoteListScreen(
                 onCreateNote = { navController.navigate(Routes.noteEditor()) },
-                onEditNote = { noteId -> navController.navigate(Routes.noteEditor(noteId)) }
+                onEditNote = { noteId -> navController.navigate(Routes.noteEditor(noteId)) },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) }
             )
         }
 
@@ -43,6 +46,12 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val noteId = backStackEntry.arguments?.getString("noteId")
             NoteEditorScreen(
                 noteId = noteId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

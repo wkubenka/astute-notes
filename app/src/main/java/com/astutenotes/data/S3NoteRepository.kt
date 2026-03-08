@@ -1,5 +1,6 @@
 package com.astutenotes.data
 
+import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.DeleteObjectRequest
 import aws.sdk.kotlin.services.s3.model.GetObjectRequest
 import aws.sdk.kotlin.services.s3.model.ListObjectsV2Request
@@ -12,14 +13,15 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.UUID
 
-class S3NoteRepository {
+class S3NoteRepository(
+    private val s3: S3Client,
+    private val bucket: String
+) : NoteRepository {
 
-    private val s3 = AwsConfig.s3Client
-    private val bucket = AwsConfig.bucketName
     private val prefix = AwsConfig.NOTES_PREFIX
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
-    suspend fun listNotes(): List<Note> {
+    override suspend fun listNotes(): List<Note> {
         val response = s3.listObjectsV2(ListObjectsV2Request {
             this.bucket = this@S3NoteRepository.bucket
             this.prefix = this@S3NoteRepository.prefix
@@ -40,11 +42,11 @@ class S3NoteRepository {
         return notes.sortedByDescending { it.updatedAt }
     }
 
-    suspend fun getNoteById(id: String): Note? {
+    override suspend fun getNoteById(id: String): Note? {
         return getNote("${prefix}${id}.json")
     }
 
-    suspend fun createNote(title: String, body: String): Note {
+    override suspend fun createNote(title: String, body: String): Note {
         val now = System.currentTimeMillis()
         val note = Note(
             id = UUID.randomUUID().toString(),
@@ -57,17 +59,21 @@ class S3NoteRepository {
         return note
     }
 
-    suspend fun updateNote(note: Note): Note {
+    override suspend fun updateNote(note: Note): Note {
         val updated = note.copy(updatedAt = System.currentTimeMillis())
         putNote(updated)
         return updated
     }
 
-    suspend fun deleteNote(id: String) {
+    override suspend fun deleteNote(id: String) {
         s3.deleteObject(DeleteObjectRequest {
             this.bucket = this@S3NoteRepository.bucket
             this.key = "${prefix}${id}.json"
         })
+    }
+
+    suspend fun backupNotes(notes: List<Note>) {
+        notes.forEach { putNote(it) }
     }
 
     private suspend fun getNote(key: String): Note? {

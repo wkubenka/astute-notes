@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,6 +45,7 @@ import java.util.Locale
 fun NoteListScreen(
     onCreateNote: () -> Unit,
     onEditNote: (String) -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: NoteListViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -54,7 +56,14 @@ fun NoteListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Astute Notes") })
+            TopAppBar(
+                title = { Text("Astute Notes") },
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
+                }
+            )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onCreateNote) {
