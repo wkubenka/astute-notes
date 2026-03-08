@@ -46,23 +46,27 @@ class SyncingNoteRepository(
         val allIds = localMap.keys + remoteMap.keys
 
         for (id in allIds) {
-            val localNote = localMap[id]
-            val remoteNote = remoteMap[id]
+            try {
+                val localNote = localMap[id]
+                val remoteNote = remoteMap[id]
 
-            when {
-                localNote != null && remoteNote == null -> {
-                    s3.saveNote(localNote)
-                }
-                localNote == null && remoteNote != null -> {
-                    local.saveNote(remoteNote)
-                }
-                localNote != null && remoteNote != null -> {
-                    if (localNote.updatedAt > remoteNote.updatedAt) {
+                when {
+                    localNote != null && remoteNote == null -> {
                         s3.saveNote(localNote)
-                    } else if (remoteNote.updatedAt > localNote.updatedAt) {
+                    }
+                    localNote == null && remoteNote != null -> {
                         local.saveNote(remoteNote)
                     }
+                    localNote != null && remoteNote != null -> {
+                        if (localNote.updatedAt > remoteNote.updatedAt) {
+                            s3.saveNote(localNote)
+                        } else if (remoteNote.updatedAt > localNote.updatedAt) {
+                            local.saveNote(remoteNote)
+                        }
+                    }
                 }
+            } catch (_: Exception) {
+                // Continue syncing remaining notes
             }
         }
     }

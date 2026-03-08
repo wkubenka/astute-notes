@@ -145,4 +145,73 @@ class SyncingNoteRepositoryTest {
         assertEquals(1, local.allNotes().size)
         assertTrue(remote.allNotes().isEmpty())
     }
+
+    @Test
+    fun `saveNote writes to both local and remote`() = runTest {
+        val note = Note("1", "Saved", "Body", 100L, 200L)
+
+        repo.saveNote(note)
+
+        assertEquals("Saved", local.getNoteById("1")!!.title)
+        assertEquals("Saved", remote.getNoteById("1")!!.title)
+    }
+
+    @Test
+    fun `remote failure does not fail local saveNote`() = runTest {
+        remote.shouldThrow = true
+        val note = Note("1", "Saved", "Body", 100L, 200L)
+
+        repo.saveNote(note)
+
+        assertEquals("Saved", local.getNoteById("1")!!.title)
+    }
+
+    @Test
+    fun `remote failure does not fail local update`() = runTest {
+        local.seed(Note("1", "Old", "Body", 100L, 200L))
+        remote.shouldThrow = true
+
+        repo.updateNote(Note("1", "New", "Body", 100L, 200L))
+
+        assertEquals("New", local.getNoteById("1")!!.title)
+    }
+
+    @Test
+    fun `sync handles mixed local-only remote-only and shared notes`() = runTest {
+        local.seed(
+            Note("local-only", "Local Only", "Body", 100L, 200L),
+            Note("shared", "Older Local", "Body", 100L, 200L)
+        )
+        remote.seed(
+            Note("remote-only", "Remote Only", "Body", 100L, 200L),
+            Note("shared", "Newer Remote", "Body", 100L, 300L)
+        )
+
+        repo.sync()
+
+        // local-only pushed to remote
+        assertEquals("Local Only", remote.getNoteById("local-only")!!.title)
+        // remote-only pulled to local
+        assertEquals("Remote Only", local.getNoteById("remote-only")!!.title)
+        // shared resolved to newer (remote)
+        assertEquals("Newer Remote", local.getNoteById("shared")!!.title)
+        assertEquals("Newer Remote", remote.getNoteById("shared")!!.title)
+    }
+
+    @Test
+    fun `sync continues past individual note failures`() = runTest {
+        local.seed(Note("ok", "Will Sync", "Body", 100L, 200L))
+        // "fail" only exists in local, so sync will try to push it to remote
+        local.seed(Note("fail", "Will Fail", "Body", 100L, 200L))
+        // remote rejects saves for "fail"
+        remote.throwOnSaveIds = setOf("fail")
+
+        repo.sync()
+
+        // "ok" should still sync despite "fail" erroring
+        assertEquals("Will Sync", remote.getNoteById("ok")!!.title)
+        // "fail" was not pushed (remote rejected it) but local is untouched
+        assertEquals("Will Fail", local.getNoteById("fail")!!.title)
+        assertNull(remote.getNoteById("fail"))
+    }
 }

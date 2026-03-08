@@ -7,6 +7,7 @@ class FakeNoteRepository : NoteRepository {
 
     private val notes = mutableMapOf<String, Note>()
     var shouldThrow: Boolean = false
+    var throwOnSaveIds: Set<String> = emptySet()
 
     override suspend fun listNotes(): List<Note> {
         if (shouldThrow) throw RuntimeException("Fake error")
@@ -40,7 +41,7 @@ class FakeNoteRepository : NoteRepository {
     }
 
     override suspend fun saveNote(note: Note) {
-        if (shouldThrow) throw RuntimeException("Fake error")
+        if (shouldThrow || note.id in throwOnSaveIds) throw RuntimeException("Fake error")
         notes[note.id] = note
     }
 
