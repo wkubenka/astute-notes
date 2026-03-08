@@ -65,6 +65,10 @@ class S3NoteRepository(
         return updated
     }
 
+    override suspend fun saveNote(note: Note) {
+        putNote(note)
+    }
+
     override suspend fun deleteNote(id: String) {
         s3.deleteObject(DeleteObjectRequest {
             this.bucket = this@S3NoteRepository.bucket

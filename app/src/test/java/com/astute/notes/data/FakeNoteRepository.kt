@@ -39,6 +39,11 @@ class FakeNoteRepository : NoteRepository {
         return updated
     }
 
+    override suspend fun saveNote(note: Note) {
+        if (shouldThrow) throw RuntimeException("Fake error")
+        notes[note.id] = note
+    }
+
     override suspend fun deleteNote(id: String) {
         if (shouldThrow) throw RuntimeException("Fake error")
         notes.remove(id)

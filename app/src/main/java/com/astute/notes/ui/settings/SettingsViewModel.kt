@@ -14,8 +14,8 @@ data class SettingsUiState(
     val secretAccessKey: String = "",
     val region: String = "us-east-1",
     val bucketName: String = "",
-    val backupStatus: String? = null,
-    val isBackingUp: Boolean = false
+    val syncStatus: String? = null,
+    val isSyncing: Boolean = false
 )
 
 class SettingsViewModel : ViewModel() {
@@ -54,37 +54,43 @@ class SettingsViewModel : ViewModel() {
         AwsConfig.secretAccessKey = state.secretAccessKey.trim()
         AwsConfig.region = state.region.trim().ifBlank { "us-east-1" }
         AwsConfig.bucketName = state.bucketName.trim()
-        _uiState.value = _uiState.value.copy(backupStatus = "Credentials saved")
+
+        if (AwsConfig.isConfigured) {
+            AstuteNotesApp.instance.enableS3Sync()
+            _uiState.value = _uiState.value.copy(syncStatus = "Credentials saved — syncing enabled")
+        } else {
+            _uiState.value = _uiState.value.copy(syncStatus = "Credentials saved")
+        }
     }
 
     fun clearCredentials() {
         AwsConfig.clearCredentials()
-        _uiState.value = SettingsUiState(backupStatus = "Credentials cleared")
+        AstuteNotesApp.instance.disableS3Sync()
+        _uiState.value = SettingsUiState(syncStatus = "Credentials cleared — syncing disabled")
     }
 
-    fun backupNow() {
+    fun syncNow() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isBackingUp = true, backupStatus = null)
+            _uiState.value = _uiState.value.copy(isSyncing = true, syncStatus = null)
             try {
                 val app = AstuteNotesApp.instance
-                val s3Repo = app.createS3Repository()
-                if (s3Repo == null) {
+                if (app.repository.remote == null) {
                     _uiState.value = _uiState.value.copy(
-                        isBackingUp = false,
-                        backupStatus = "AWS credentials not configured"
+                        isSyncing = false,
+                        syncStatus = "AWS credentials not configured"
                     )
                     return@launch
                 }
-                val notes = app.repository.listNotes()
-                s3Repo.backupNotes(notes)
+                app.repository.sync()
+                val count = app.repository.listNotes().size
                 _uiState.value = _uiState.value.copy(
-                    isBackingUp = false,
-                    backupStatus = "Backed up ${notes.size} note(s) to S3"
+                    isSyncing = false,
+                    syncStatus = "Synced $count note(s) with S3"
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    isBackingUp = false,
-                    backupStatus = "Backup failed: ${e.message}"
+                    isSyncing = false,
+                    syncStatus = "Sync failed: ${e.message}"
                 )
             }
         }

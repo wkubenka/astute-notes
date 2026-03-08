@@ -57,11 +57,11 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
-                text = "AWS S3 Backup",
+                text = "AWS S3 Sync",
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "Optionally configure AWS credentials to back up your notes to S3.",
+                text = "Configure AWS credentials to sync your notes with S3.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -119,17 +119,17 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
-                onClick = { viewModel.backupNow() },
+                onClick = { viewModel.syncNow() },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isBackingUp
+                enabled = !uiState.isSyncing
             ) {
-                if (uiState.isBackingUp) {
+                if (uiState.isSyncing) {
                     CircularProgressIndicator(
                         modifier = Modifier.height(20.dp),
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Backup Now")
+                    Text("Sync Now")
                 }
             }
 
@@ -142,12 +142,12 @@ fun SettingsScreen(
                 Text("Clear Credentials")
             }
 
-            if (uiState.backupStatus != null) {
+            if (uiState.syncStatus != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = uiState.backupStatus!!,
+                    text = uiState.syncStatus!!,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (uiState.backupStatus!!.startsWith("Backup failed"))
+                    color = if (uiState.syncStatus!!.startsWith("Sync failed"))
                         MaterialTheme.colorScheme.error
                     else
                         MaterialTheme.colorScheme.primary

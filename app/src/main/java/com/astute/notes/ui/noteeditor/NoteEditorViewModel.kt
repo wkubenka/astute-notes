@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.astute.notes.AstuteNotesApp
 import com.astute.notes.data.NoteRepository
-import com.astute.notes.model.Note
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,11 +19,10 @@ data class NoteEditorUiState(
 )
 
 class NoteEditorViewModel(
-    private val repository: NoteRepository = AstuteNotesApp.instance.repository,
-    private val onBackup: (suspend (Note) -> Unit)? = defaultBackup()
+    private val repository: NoteRepository = AstuteNotesApp.instance.repository
 ) : ViewModel() {
 
-    private var existingNote: Note? = null
+    private var existingNote: com.astute.notes.model.Note? = null
 
     private val _uiState = MutableStateFlow(NoteEditorUiState())
     val uiState: StateFlow<NoteEditorUiState> = _uiState.asStateFlow()
@@ -72,27 +70,19 @@ class NoteEditorViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true, error = null)
             try {
-                val saved: Note
                 val existing = existingNote
                 if (existing != null) {
-                    saved = repository.updateNote(
+                    repository.updateNote(
                         existing.copy(
                             title = _uiState.value.title,
                             body = _uiState.value.body
                         )
                     )
                 } else {
-                    saved = repository.createNote(
+                    repository.createNote(
                         title = _uiState.value.title,
                         body = _uiState.value.body
                     )
-                }
-
-                // Best-effort S3 backup
-                try {
-                    onBackup?.invoke(saved)
-                } catch (_: Exception) {
-                    // Backup failure is non-fatal
                 }
 
                 _uiState.value = _uiState.value.copy(isSaving = false, isSaved = true)
@@ -101,18 +91,6 @@ class NoteEditorViewModel(
                     isSaving = false,
                     error = e.message ?: "Failed to save note"
                 )
-            }
-        }
-    }
-
-    companion object {
-        private fun defaultBackup(): (suspend (Note) -> Unit)? {
-            return try {
-                val app = AstuteNotesApp.instance
-                val s3Repo = app.createS3Repository() ?: return null
-                { note -> s3Repo.backupNotes(listOf(note)) }
-            } catch (_: Exception) {
-                null
             }
         }
     }

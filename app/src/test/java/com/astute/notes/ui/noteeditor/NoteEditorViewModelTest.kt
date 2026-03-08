@@ -35,7 +35,7 @@ class NoteEditorViewModelTest {
     }
 
     private fun createViewModel(): NoteEditorViewModel {
-        return NoteEditorViewModel(repository = fakeRepo, onBackup = null)
+        return NoteEditorViewModel(repository = fakeRepo)
     }
 
     @Test
@@ -174,36 +174,4 @@ class NoteEditorViewModelTest {
         assertEquals("Fake error", state.error)
     }
 
-    @Test
-    fun `saveNote with backup function calls backup`() = runTest(testDispatcher) {
-        var backedUpNote: Note? = null
-        val viewModel = NoteEditorViewModel(
-            repository = fakeRepo,
-            onBackup = { note -> backedUpNote = note }
-        )
-
-        viewModel.onTitleChanged("Backup Test")
-        viewModel.onBodyChanged("Body")
-        viewModel.saveNote()
-        advanceUntilIdle()
-
-        assertTrue(viewModel.uiState.value.isSaved)
-        assertEquals("Backup Test", backedUpNote?.title)
-    }
-
-    @Test
-    fun `saveNote succeeds even if backup fails`() = runTest(testDispatcher) {
-        val viewModel = NoteEditorViewModel(
-            repository = fakeRepo,
-            onBackup = { throw RuntimeException("S3 down") }
-        )
-
-        viewModel.onTitleChanged("Title")
-        viewModel.onBodyChanged("Body")
-        viewModel.saveNote()
-        advanceUntilIdle()
-
-        assertTrue(viewModel.uiState.value.isSaved)
-        assertNull(viewModel.uiState.value.error)
-    }
 }

@@ -58,13 +58,13 @@ class LocalNoteRepository(private val notesDir: File) : NoteRepository {
         return updated
     }
 
+    override suspend fun saveNote(note: Note) = withContext(Dispatchers.IO) {
+        val file = File(notesDir, "${note.id}.json")
+        file.writeText(json.encodeToString(note))
+    }
+
     override suspend fun deleteNote(id: String) = withContext(Dispatchers.IO) {
         File(notesDir, "$id.json").delete()
         Unit
-    }
-
-    private suspend fun saveNote(note: Note) = withContext(Dispatchers.IO) {
-        val file = File(notesDir, "${note.id}.json")
-        file.writeText(json.encodeToString(note))
     }
 }
