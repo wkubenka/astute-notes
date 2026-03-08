@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,7 +29,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,9 +52,31 @@ fun NoteListScreen(
     viewModel: NoteListViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var noteToDelete by remember { mutableStateOf<Note?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.loadNotes()
+    }
+
+    noteToDelete?.let { note ->
+        AlertDialog(
+            onDismissRequest = { noteToDelete = null },
+            title = { Text("Delete note?") },
+            text = { Text("\"${note.title.ifBlank { "Untitled" }}\" will be permanently deleted.") },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.deleteNote(note.id)
+                    noteToDelete = null
+                }) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { noteToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -101,7 +126,7 @@ fun NoteListScreen(
                             NoteListItem(
                                 note = note,
                                 onClick = { onEditNote(note.id) },
-                                onDelete = { viewModel.deleteNote(note.id) }
+                                onDelete = { noteToDelete = note }
                             )
                         }
                     }
