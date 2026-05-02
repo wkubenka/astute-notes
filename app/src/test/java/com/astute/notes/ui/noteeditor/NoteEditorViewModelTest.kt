@@ -163,6 +163,7 @@ class NoteEditorViewModelTest {
     fun `saveNote sets error on failure`() = runTest(testDispatcher) {
         val viewModel = createViewModel()
         viewModel.onTitleChanged("Title")
+        viewModel.onBodyChanged("Body")
 
         fakeRepo.shouldThrow = true
         viewModel.saveNote()
@@ -172,6 +173,104 @@ class NoteEditorViewModelTest {
         assertFalse(state.isSaving)
         assertFalse(state.isSaved)
         assertEquals("Fake error", state.error)
+    }
+
+    @Test
+    fun `saveNote skips persistence when title is blank`() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        viewModel.onBodyChanged("Body without title")
+
+        viewModel.saveNote()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isSaved)
+        assertEquals(0, fakeRepo.allNotes().size)
+    }
+
+    @Test
+    fun `saveNote skips persistence when body is blank`() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        viewModel.onTitleChanged("Title without body")
+
+        viewModel.saveNote()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isSaved)
+        assertEquals(0, fakeRepo.allNotes().size)
+    }
+
+    @Test
+    fun `saveNote skips persistence when both fields blank`() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+
+        viewModel.saveNote()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isSaved)
+        assertEquals(0, fakeRepo.allNotes().size)
+    }
+
+    @Test
+    fun `saveNote skips persistence when title is whitespace only`() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        viewModel.onTitleChanged("   ")
+        viewModel.onBodyChanged("Body")
+
+        viewModel.saveNote()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isSaved)
+        assertEquals(0, fakeRepo.allNotes().size)
+    }
+
+    @Test
+    fun `saveNote does not persist existing note when title cleared`() = runTest(testDispatcher) {
+        val note = Note("1", "Old Title", "Old Body", 100L, 200L)
+        fakeRepo.seed(note)
+
+        val viewModel = createViewModel()
+        viewModel.loadNote("1")
+        advanceUntilIdle()
+
+        viewModel.onTitleChanged("")
+        viewModel.saveNote()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isSaved)
+        val saved = fakeRepo.getNoteById("1")!!
+        assertEquals("Old Title", saved.title)
+        assertEquals("Old Body", saved.body)
+    }
+
+    @Test
+    fun `reset clears fields for new note`() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        viewModel.onTitleChanged("Some Title")
+        viewModel.onBodyChanged("Some Body")
+
+        viewModel.reset()
+
+        val state = viewModel.uiState.value
+        assertEquals("", state.title)
+        assertEquals("", state.body)
+    }
+
+    @Test
+    fun `reset reverts edited fields to loaded values`() = runTest(testDispatcher) {
+        val note = Note("1", "Original Title", "Original Body", 100L, 200L)
+        fakeRepo.seed(note)
+
+        val viewModel = createViewModel()
+        viewModel.loadNote("1")
+        advanceUntilIdle()
+
+        viewModel.onTitleChanged("Edited Title")
+        viewModel.onBodyChanged("Edited Body")
+        viewModel.reset()
+
+        val state = viewModel.uiState.value
+        assertEquals("Original Title", state.title)
+        assertEquals("Original Body", state.body)
     }
 
 }

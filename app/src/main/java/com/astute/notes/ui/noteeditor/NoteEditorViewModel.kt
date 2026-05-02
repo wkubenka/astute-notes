@@ -23,6 +23,8 @@ class NoteEditorViewModel(
 ) : ViewModel() {
 
     private var existingNote: com.astute.notes.model.Note? = null
+    private var originalTitle: String = ""
+    private var originalBody: String = ""
 
     private val _uiState = MutableStateFlow(NoteEditorUiState())
     val uiState: StateFlow<NoteEditorUiState> = _uiState.asStateFlow()
@@ -38,6 +40,8 @@ class NoteEditorViewModel(
                 val note = repository.getNoteById(noteId)
                 if (note != null) {
                     existingNote = note
+                    originalTitle = note.title
+                    originalBody = note.body
                     _uiState.value = _uiState.value.copy(
                         title = note.title,
                         body = note.body,
@@ -66,23 +70,33 @@ class NoteEditorViewModel(
         _uiState.value = _uiState.value.copy(body = body)
     }
 
+    fun reset() {
+        _uiState.value = _uiState.value.copy(
+            title = originalTitle,
+            body = originalBody,
+            error = null
+        )
+    }
+
     fun saveNote() {
+        val title = _uiState.value.title
+        val body = _uiState.value.body
+
+        if (title.isBlank() || body.isBlank()) {
+            _uiState.value = _uiState.value.copy(isSaved = true)
+            return
+        }
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true, error = null)
             try {
                 val existing = existingNote
                 if (existing != null) {
                     repository.updateNote(
-                        existing.copy(
-                            title = _uiState.value.title,
-                            body = _uiState.value.body
-                        )
+                        existing.copy(title = title, body = body)
                     )
                 } else {
-                    repository.createNote(
-                        title = _uiState.value.title,
-                        body = _uiState.value.body
-                    )
+                    repository.createNote(title = title, body = body)
                 }
 
                 _uiState.value = _uiState.value.copy(isSaving = false, isSaved = true)

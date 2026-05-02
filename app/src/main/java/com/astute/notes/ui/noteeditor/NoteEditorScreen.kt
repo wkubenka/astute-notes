@@ -7,9 +7,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,21 +46,28 @@ fun NoteEditorScreen(
         if (uiState.isSaved) onNavigateBack()
     }
 
+    BackHandler(enabled = !uiState.isSaving) {
+        viewModel.saveNote()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(if (viewModel.isNewNote) "New Note" else "Edit Note") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(
+                        onClick = { viewModel.saveNote() },
+                        enabled = !uiState.isSaving
+                    ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
                     IconButton(
-                        onClick = { viewModel.saveNote() },
+                        onClick = { viewModel.reset() },
                         enabled = !uiState.isSaving
                     ) {
-                        Icon(Icons.Default.Check, contentDescription = "Save")
+                        Icon(Icons.Default.Refresh, contentDescription = "Reset")
                     }
                 }
             )
